@@ -53,6 +53,7 @@ ultimo_toggle = 0.0
 lock = threading.Lock()
 kb_controller = Controller()
 tray_icon: pystray.Icon = None
+stream: sd.InputStream = None
 
 
 def crear_icono(color: str) -> Image.Image:
@@ -141,6 +142,24 @@ def procesar_audio() -> None:
     cambiar_estado(ESTADO_IDLE)
 
 
+def abrir_stream() -> None:
+    """Abre el microfono. Solo se llama al empezar a grabar."""
+    global stream
+    stream = sd.InputStream(
+        callback=callback, channels=CHANNELS, samplerate=SAMPLE_RATE
+    )
+    stream.start()
+
+
+def cerrar_stream() -> None:
+    """Cierra el microfono. Asi audiodg no consume CPU en reposo."""
+    global stream
+    if stream is not None:
+        stream.stop()
+        stream.close()
+        stream = None
+
+
 def toggle() -> None:
     global grabando, audio_buffer, ultimo_toggle
 
@@ -153,10 +172,12 @@ def toggle() -> None:
         if not grabando:
             audio_buffer = []
             grabando = True
+            abrir_stream()
             cambiar_estado(ESTADO_REC)
             return
 
         grabando = False
+        cerrar_stream()
 
     threading.Thread(target=procesar_audio, daemon=True).start()
 
@@ -166,13 +187,8 @@ def hotkey_listener() -> None:
         h.join()
 
 
-def audio_loop() -> None:
-    with sd.InputStream(callback=callback, channels=CHANNELS, samplerate=SAMPLE_RATE):
-        # Mantener el stream abierto indefinidamente
-        threading.Event().wait()
-
-
 def salir(icon, item) -> None:
+    cerrar_stream()
     icon.stop()
     os._exit(0)
 
@@ -181,7 +197,6 @@ def main() -> None:
     global tray_icon
 
     threading.Thread(target=hotkey_listener, daemon=True).start()
-    threading.Thread(target=audio_loop, daemon=True).start()
 
     menu = pystray.Menu(
         pystray.MenuItem("Dorita Dictado", lambda: None, enabled=False),
