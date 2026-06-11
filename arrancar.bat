@@ -1,5 +1,5 @@
 @echo off
-cd /d "C:\Users\IVAN LAFUENTE\Projects\dorita-dictado"
+cd /d "%~dp0"
 if not exist .venv (
     echo Creando entorno virtual por primera vez...
     python -m venv .venv
