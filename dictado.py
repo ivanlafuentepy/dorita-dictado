@@ -37,6 +37,7 @@ CHANNELS = 1
 HOTKEY = "<ctrl>+<shift>+<space>"
 MODEL = "whisper-large-v3"
 LANG = "es"
+MIC_NAME = "DRELANMIC"  # microfono externo preferido; si no esta, usa el default de Windows
 
 COLOR_IDLE = "#3b82f6"     # azul
 COLOR_REC = "#ef4444"      # rojo
@@ -142,11 +143,23 @@ def procesar_audio() -> None:
     cambiar_estado(ESTADO_IDLE)
 
 
+def resolver_device():
+    """Busca el indice del microfono preferido por nombre. None = default de Windows."""
+    try:
+        for idx, d in enumerate(sd.query_devices()):
+            if d["max_input_channels"] > 0 and MIC_NAME.lower() in d["name"].lower():
+                return idx
+    except Exception:
+        pass
+    return None
+
+
 def abrir_stream() -> None:
     """Abre el microfono. Solo se llama al empezar a grabar."""
     global stream
     stream = sd.InputStream(
-        callback=callback, channels=CHANNELS, samplerate=SAMPLE_RATE
+        callback=callback, channels=CHANNELS, samplerate=SAMPLE_RATE,
+        device=resolver_device(),
     )
     stream.start()
 
