@@ -1,5 +1,5 @@
 # Re-enumera el microfono USB DRELANMIC tras el arranque.
-# Problema: en arranque en frio el mic USB enumera mal — Windows lo da por OK
+# Problema: en arranque en frio el mic USB enumera mal - Windows lo da por OK
 # pero el stream entrega silencio. Ciclar el dispositivo (disable/enable) lo arregla,
 # igual que desenchufar/enchufar el cable. Lo corre una tarea programada al iniciar sesion.
 # Requiere privilegios de admin (la tarea se registra con RunLevel Highest).
@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $dev = Get-PnpDevice -Class MEDIA -FriendlyName '*DRELANMIC*' -ErrorAction SilentlyContinue | Select-Object -First 1
 
 if (-not $dev) {
-    Write-Output "DRELANMIC no encontrado — nada que hacer."
+    Write-Output "DRELANMIC no encontrado - nada que hacer."
     exit 0
 }
 

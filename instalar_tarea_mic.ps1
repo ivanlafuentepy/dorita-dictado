@@ -20,7 +20,7 @@ $settings  = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimi
 Register-ScheduledTask -TaskName 'DoritaDictado-ReenumerarMic' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
 
 Write-Host ""
-Write-Host "OK — Tarea 'DoritaDictado-ReenumerarMic' registrada." -ForegroundColor Green
+Write-Host "OK - Tarea 'DoritaDictado-ReenumerarMic' registrada." -ForegroundColor Green
 Write-Host "A partir del proximo reinicio, el mic se re-enumera solo al iniciar sesion."
 Write-Host "Ya podes cerrar esta ventana."
 Start-Sleep -Seconds 5
