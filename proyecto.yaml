@@ -1,0 +1,18 @@
+# proyecto.yaml — ficha de este repo para el cerebro central (lafuente-crm).
+# Fuente de verdad del CONTEXTO ESTABLE. Lo vivo (commits, fechas) lo calcula
+# el agregador desde git. Editá a mano lo que el draft no acertó.
+nombre: dorita-dictado
+alias: Dorita Dictado
+que_es: Transcripción de voz al portapapeles en español usando **Groq Whisper Large
+  v3**. Dictás en cualquier app de Windows (VS Code, WhatsApp Web, Word, navegador,
+  terminal) y el texto se pega automáticamente donde tengas el cursor.
+tipo: herramienta
+estado: activo
+stack:
+- python
+deploy:
+  plataforma: ninguno
+  url: ''
+conexiones: []
+fuente_contexto: README.md
+notas: ''
