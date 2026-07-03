@@ -6,6 +6,12 @@
 
 $ErrorActionPreference = 'Stop'
 
+# En arranque en frio el mic suele quedar des-enumerado del bus (Present=False).
+# No se puede ciclar un dispositivo ausente, asi que primero forzamos un rescan
+# del bus USB (equivale a "Buscar cambios de hardware") para que Windows lo re-detecte.
+& pnputil.exe /scan-devices | Out-Null
+Start-Sleep -Seconds 3
+
 # Buscar el dispositivo MEDIA (el USB real, no el AudioEndpoint) por nombre,
 # asi sigue funcionando aunque el InstanceId cambie entre reinicios.
 $dev = Get-PnpDevice -Class MEDIA -FriendlyName '*DRELANMIC*' -ErrorAction SilentlyContinue | Select-Object -First 1
