@@ -11,6 +11,7 @@ import os
 import sys
 import wave
 import time
+import ctypes
 import threading
 
 import numpy as np
@@ -34,7 +35,7 @@ client = Groq(api_key=GROQ_API_KEY)
 
 SAMPLE_RATE = 16000
 CHANNELS = 1
-HOTKEY = "<ctrl>+<space>"
+VK_CONTROL = 0x11  # Ctrl (cualquiera de las dos) para GetAsyncKeyState
 MODEL = "whisper-large-v3"
 LANG = "es"
 
@@ -183,8 +184,31 @@ def toggle() -> None:
 
 
 def hotkey_listener() -> None:
-    with keyboard.GlobalHotKeys({HOTKEY: toggle}) as h:
-        h.join()
+    """Ctrl+Espacio. NO usa GlobalHotKeys: su tracking interno se desincroniza si
+    pierde un release de Ctrl (ventanas elevadas, cambios de foco) y la barra sola
+    disparaba el mic. Aca se consulta el estado FISICO de Ctrl con GetAsyncKeyState
+    recien en el momento de apretar espacio — no hay estado que se pueda pegar."""
+    espacio_abajo = False
+
+    def ctrl_fisico() -> bool:
+        return bool(ctypes.windll.user32.GetAsyncKeyState(VK_CONTROL) & 0x8000)
+
+    def on_press(key):
+        nonlocal espacio_abajo
+        if key == keyboard.Key.space:
+            if espacio_abajo:  # autorepeat de Windows al mantener apretada la barra
+                return
+            espacio_abajo = True
+            if ctrl_fisico():
+                toggle()
+
+    def on_release(key):
+        nonlocal espacio_abajo
+        if key == keyboard.Key.space:
+            espacio_abajo = False
+
+    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+        listener.join()
 
 
 def salir(icon, item) -> None:
@@ -193,8 +217,18 @@ def salir(icon, item) -> None:
     os._exit(0)
 
 
+def asegurar_instancia_unica() -> None:
+    """Si ya hay un dictado corriendo, salir en silencio. Evita dobles toggles
+    cuando conviven el arranque automatico (shell:startup) y uno lanzado a mano."""
+    ctypes.windll.kernel32.CreateMutexW(None, False, "DoritaDictadoMutex")
+    if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        sys.exit(0)
+
+
 def main() -> None:
     global tray_icon
+
+    asegurar_instancia_unica()
 
     threading.Thread(target=hotkey_listener, daemon=True).start()
 
