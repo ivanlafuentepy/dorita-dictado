@@ -1,7 +1,7 @@
 """
 Dorita Dictado — Transcribe voz al portapapeles + auto-paste, con icono en bandeja.
 
-Hotkey: Ctrl+Shift+Espacio (apretar para grabar, apretar de nuevo para parar).
+Hotkey: Ctrl+Espacio (apretar para grabar, apretar de nuevo para parar).
 Resultado se pega automaticamente donde tengas el cursor.
 
 Click derecho en el icono de la bandeja para ver estado y salir.
@@ -34,7 +34,7 @@ client = Groq(api_key=GROQ_API_KEY)
 
 SAMPLE_RATE = 16000
 CHANNELS = 1
-HOTKEY = "<ctrl>+<shift>+<space>"
+HOTKEY = "<ctrl>+<space>"
 MODEL = "whisper-large-v3"
 LANG = "es"
 
@@ -202,7 +202,7 @@ def main() -> None:
         pystray.MenuItem("Dorita Dictado", lambda: None, enabled=False),
         pystray.MenuItem(lambda item: f"Estado: {estado_actual}", lambda: None, enabled=False),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Hotkey: Ctrl+Shift+Espacio", lambda: None, enabled=False),
+        pystray.MenuItem("Hotkey: Ctrl+Espacio", lambda: None, enabled=False),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Salir", salir),
     )
