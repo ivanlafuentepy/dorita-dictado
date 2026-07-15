@@ -1,7 +1,7 @@
 """
 Dorita Dictado — Transcribe voz al portapapeles + auto-paste, con icono en bandeja.
 
-Hotkey: Ctrl+Espacio (apretar para grabar, apretar de nuevo para parar).
+Hotkey: M+Espacio (con la M apretada, tocar espacio; igual para parar).
 Resultado se pega automaticamente donde tengas el cursor.
 
 Click derecho en el icono de la bandeja para ver estado y salir.
@@ -33,9 +33,22 @@ if not GROQ_API_KEY:
 
 client = Groq(api_key=GROQ_API_KEY)
 
+LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dictado.log")
+
+
+def log(mensaje: str) -> None:
+    """Bitacora minima en disco — pythonw no tiene consola y los crashes
+    quedaban invisibles (el proceso murio el 13/07 sin dejar rastro)."""
+    try:
+        with open(LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {mensaje}\n")
+    except OSError:
+        pass
+
+
 SAMPLE_RATE = 16000
 CHANNELS = 1
-VK_CONTROL = 0x11  # Ctrl (cualquiera de las dos) para GetAsyncKeyState
+VK_M = 0x4D  # letra M para GetAsyncKeyState
 MODEL = "whisper-large-v3"
 LANG = "es"
 
@@ -137,6 +150,7 @@ def procesar_audio() -> None:
             auto_pegar()
     except Exception as e:
         # Silencio en background — opcionalmente notificar via tray
+        log(f"error transcripcion: {e!r}")
         if tray_icon:
             tray_icon.notify(f"Error: {str(e)[:80]}", "Dorita Dictado")
 
@@ -184,14 +198,14 @@ def toggle() -> None:
 
 
 def hotkey_listener() -> None:
-    """Ctrl+Espacio. NO usa GlobalHotKeys: su tracking interno se desincroniza si
-    pierde un release de Ctrl (ventanas elevadas, cambios de foco) y la barra sola
-    disparaba el mic. Aca se consulta el estado FISICO de Ctrl con GetAsyncKeyState
+    """M+Espacio. NO usa GlobalHotKeys: su tracking interno se desincroniza si
+    pierde un release (ventanas elevadas, cambios de foco) y la barra sola
+    disparaba el mic. Aca se consulta el estado FISICO de la M con GetAsyncKeyState
     recien en el momento de apretar espacio — no hay estado que se pueda pegar."""
     espacio_abajo = False
 
-    def ctrl_fisico() -> bool:
-        return bool(ctypes.windll.user32.GetAsyncKeyState(VK_CONTROL) & 0x8000)
+    def m_fisica() -> bool:
+        return bool(ctypes.windll.user32.GetAsyncKeyState(VK_M) & 0x8000)
 
     def on_press(key):
         nonlocal espacio_abajo
@@ -199,7 +213,7 @@ def hotkey_listener() -> None:
             if espacio_abajo:  # autorepeat de Windows al mantener apretada la barra
                 return
             espacio_abajo = True
-            if ctrl_fisico():
+            if m_fisica():
                 toggle()
 
     def on_release(key):
@@ -207,11 +221,16 @@ def hotkey_listener() -> None:
         if key == keyboard.Key.space:
             espacio_abajo = False
 
-    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-        listener.join()
+    try:
+        with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+            listener.join()
+    except Exception as e:
+        log(f"CRASH listener: {e!r}")
+        raise
 
 
 def salir(icon, item) -> None:
+    log("salida por menu Salir")
     cerrar_stream()
     icon.stop()
     os._exit(0)
@@ -229,6 +248,7 @@ def main() -> None:
     global tray_icon
 
     asegurar_instancia_unica()
+    log("arranque OK — hotkey M+Espacio")
 
     threading.Thread(target=hotkey_listener, daemon=True).start()
 
@@ -236,7 +256,7 @@ def main() -> None:
         pystray.MenuItem("Dorita Dictado", lambda: None, enabled=False),
         pystray.MenuItem(lambda item: f"Estado: {estado_actual}", lambda: None, enabled=False),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Hotkey: Ctrl+Espacio", lambda: None, enabled=False),
+        pystray.MenuItem("Hotkey: M+Espacio", lambda: None, enabled=False),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Salir", salir),
     )
@@ -247,7 +267,12 @@ def main() -> None:
         f"Dorita Dictado — {ESTADO_IDLE}",
         menu=menu,
     )
-    tray_icon.run()
+    try:
+        tray_icon.run()
+    except Exception as e:
+        log(f"CRASH tray: {e!r}")
+        raise
+    log("salida normal (menu Salir o cierre del tray)")
 
 
 if __name__ == "__main__":
