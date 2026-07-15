@@ -17,6 +17,7 @@ import sys
 import wave
 import time
 import ctypes
+from ctypes import wintypes
 import threading
 
 import numpy as np
@@ -73,6 +74,20 @@ lock = threading.Lock()
 kb_controller = Controller()
 tray_icon: pystray.Icon = None
 stream: sd.InputStream = None
+
+# --- Foco: donde pegar el texto -----------------------------------------
+# Al hacer click en el icono de la bandeja, el foco del teclado se va de la
+# caja donde estabas escribiendo (VS Code, WhatsApp, etc.) hacia la barra de
+# tareas → el Ctrl+V automatico se pierde. Solucion: un poller recuerda la
+# ultima ventana "real" con foco mientras NO grabamos, y antes de pegar le
+# devolvemos el foco a esa ventana.
+user32 = ctypes.windll.user32
+ventana_objetivo = None  # HWND donde pegar la transcripcion
+_CLASES_SHELL = {
+    "Shell_TrayWnd", "Shell_SecondaryTrayWnd", "TrayNotifyWnd",
+    "NotifyIconOverflowWindow", "Windows.UI.Core.CoreWindow",
+    "WorkerW", "Progman", "Button",
+}
 
 
 def crear_icono(color: str) -> Image.Image:
@@ -132,8 +147,70 @@ def transcribir(audio_np: np.ndarray) -> str:
     return resp.text.strip()
 
 
+def _nombre_clase(hwnd) -> str:
+    buf = ctypes.create_unicode_buffer(256)
+    user32.GetClassNameW(hwnd, buf, 256)
+    return buf.value
+
+
+def _es_ventana_valida(hwnd) -> bool:
+    """True si es una ventana donde tiene sentido pegar texto (no la barra de
+    tareas, ni el menu inicio, ni nuestra propia ventana oculta del tray)."""
+    if not hwnd or not user32.IsWindowVisible(hwnd):
+        return False
+    pid = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    if pid.value == os.getpid():
+        return False
+    return _nombre_clase(hwnd) not in _CLASES_SHELL
+
+
+def _recordar_ventana_activa() -> None:
+    """Corre en background: mientras estamos en reposo, guarda la ultima ventana
+    real con foco. Cuando el usuario hace click en el icono para grabar, esa
+    ventana ya quedo guardada (el filtro ignora la barra de tareas)."""
+    global ventana_objetivo
+    while True:
+        try:
+            if not grabando and estado_actual == ESTADO_IDLE:
+                hwnd = user32.GetForegroundWindow()
+                if _es_ventana_valida(hwnd):
+                    ventana_objetivo = hwnd
+        except Exception as e:
+            log(f"poller ventana: {e!r}")
+        time.sleep(0.25)
+
+
+def _traer_al_frente(hwnd) -> bool:
+    """Devuelve el foco a hwnd. Usa AttachThreadInput como fallback si Windows
+    bloquea el SetForegroundWindow directo (foreground lock)."""
+    if not hwnd or not user32.IsWindow(hwnd):
+        return False
+    try:
+        if user32.IsIconic(hwnd):            # minimizada → restaurar
+            user32.ShowWindow(hwnd, 9)       # SW_RESTORE
+        if user32.SetForegroundWindow(hwnd):
+            return True
+        # Fallback: adjuntar el input del hilo en foreground al de la ventana
+        hilo_fg = user32.GetWindowThreadProcessId(user32.GetForegroundWindow(), None)
+        hilo_obj = user32.GetWindowThreadProcessId(hwnd, None)
+        user32.AttachThreadInput(hilo_fg, hilo_obj, True)
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+        user32.AttachThreadInput(hilo_fg, hilo_obj, False)
+        return True
+    except Exception as e:
+        log(f"no pude restaurar foco: {e!r}")
+        return False
+
+
 def auto_pegar() -> None:
-    time.sleep(0.1)
+    # Devolver el foco a la caja donde estabas escribiendo ANTES de pegar,
+    # si no el Ctrl+V se manda a la barra de tareas y no pega nada.
+    if _traer_al_frente(ventana_objetivo):
+        time.sleep(0.15)
+    else:
+        time.sleep(0.1)
     with kb_controller.pressed(Key.ctrl):
         kb_controller.press("v")
         kb_controller.release("v")
@@ -263,6 +340,9 @@ def main() -> None:
 
     asegurar_instancia_unica()
     log("arranque OK — control por click del icono")
+
+    # Recuerda la ventana donde pegar (el click en el icono roba el foco).
+    threading.Thread(target=_recordar_ventana_activa, daemon=True).start()
 
     # El hotkey de teclado quedo desactivado (disparos fantasma). Control por click.
     menu = pystray.Menu(
