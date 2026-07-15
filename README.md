@@ -11,9 +11,9 @@ Mucho mejor que el dictado nativo de Windows (Win+H) — sobre todo en español 
 
 ## Cómo funciona
 
-1. Apretás `Ctrl+Espacio` → empieza a grabar (ícono en bandeja se pone rojo)
+1. CLICK en el ícono de la bandeja → empieza a grabar (ícono en bandeja se pone rojo)
 2. Hablás
-3. Apretás `Ctrl+Espacio` de nuevo → para, transcribe, pega solo
+3. CLICK de nuevo en el ícono → para, transcribe, pega solo
 4. Listo — el texto aparece donde tenías el cursor
 
 El audio **nunca se guarda en disco**. Vive en memoria, va a Groq, se descarta.
@@ -92,9 +92,9 @@ Si todo salió bien, va a aparecer un **círculo azul con un micrófono** en la 
 
 1. Abrí cualquier app donde quieras dictar (VS Code, navegador, WhatsApp Web, lo que sea)
 2. Hacé click donde quieras que aparezca el texto (caja de mensaje, editor, etc.)
-3. Apretá `Ctrl+Espacio` — el ícono se pone rojo
+3. CLICK en el ícono — se pone rojo
 4. Decí algo en voz alta: *"hola, esta es una prueba de dictado"*
-5. Apretá `Ctrl+Espacio` de nuevo — el ícono se pone amarillo, después vuelve a azul
+5. CLICK de nuevo en el ícono — se pone amarillo, después vuelve a azul
 6. El texto aparece automáticamente donde tenías el cursor
 
 ---
@@ -118,9 +118,9 @@ Próxima vez que prendas la PC, el ícono azul aparece solo en la bandeja, listo
 ### Para dictar
 
 - Cursor donde quieras escribir
-- `Ctrl+Espacio`
+- CLICK en el ícono de la bandeja (se pone rojo)
 - Hablás
-- `Ctrl+Espacio`
+- CLICK de nuevo en el ícono
 - Texto pegado automáticamente
 
 ### Para ver el estado
@@ -131,7 +131,7 @@ Hover sobre el ícono en la bandeja → te dice "Listo" / "Grabando..." / "Trans
 
 | Color | Significa |
 |---|---|
-| 🔵 Azul | Listo, esperando que apretes la hotkey |
+| 🔵 Azul | Listo, hacé click para grabar |
 | 🔴 Rojo | Grabando — hablá |
 | 🟡 Amarillo | Procesando — esperá 1-2 segundos |
 
@@ -155,18 +155,17 @@ Editá `dictado.py` con cualquier editor:
 
 | Qué cambiar | Línea | Valor por default |
 |---|---|---|
-| Hotkey | `HOTKEY = "<ctrl>+<space>"` | Ctrl+Espacio |
 | Idioma | `LANG = "es"` | Español. Para inglés: `"en"` |
 | Modelo | `MODEL = "whisper-large-v3"` | El mejor de Groq |
 
 Después de editar, cerrá el programa (click derecho en ícono → Salir) y arrancalo de nuevo con el `.vbs`.
 
-### Hotkeys alternativos
+### Sobre el atajo de teclado (desactivado)
 
-Si `Ctrl+Espacio` choca con otra app:
-- `<f12>` — tecla F12 sola
-- `<ctrl>+<alt>+d` — Ctrl + Alt + D
-- `<ctrl>+<shift>+v` — Ctrl + Shift + V
+El control es por **click del ícono**. El viejo atajo Ctrl+Espacio quedó desactivado
+porque disparaba el micrófono solo (pynput perdía el release de Ctrl). La función
+`hotkey_listener` sigue en `dictado.py` pero no se arranca; si algún día lo querés de
+vuelta, hay que volver a lanzar ese thread en `main()`.
 
 ---
 

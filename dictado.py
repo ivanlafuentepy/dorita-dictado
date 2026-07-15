@@ -1,10 +1,15 @@
 """
 Dorita Dictado — Transcribe voz al portapapeles + auto-paste, con icono en bandeja.
 
-Hotkey: Ctrl+Espacio (apretar para grabar, apretar de nuevo para parar).
-Resultado se pega automaticamente donde tengas el cursor.
+Uso: CLICK IZQUIERDO en el icono de la bandeja para grabar; click de nuevo para
+parar y transcribir. El resultado se pega solo donde tengas el cursor.
+El icono cambia de color: azul = listo, rojo = grabando, amarillo = transcribiendo.
 
-Click derecho en el icono de la bandeja para ver estado y salir.
+Click derecho en el icono para el menu (grabar/parar, estado, salir).
+
+Nota: el atajo de teclado Ctrl+Espacio quedo DESACTIVADO (disparaba el mic solo
+cuando pynput perdia el release de Ctrl). La funcion `hotkey_listener` sigue en el
+codigo pero no se arranca — el control es 100% por click del icono.
 """
 import io
 import os
@@ -229,6 +234,15 @@ def hotkey_listener() -> None:
         raise
 
 
+def toggle_click(icon=None, item=None) -> None:
+    """Handler del click del icono y del item del menu (pystray pasa (icon, item))."""
+    toggle()
+
+
+def texto_item_grabar(item) -> str:
+    return "⏹  Detener grabacion" if grabando else "🎙  Grabar"
+
+
 def salir(icon, item) -> None:
     log("salida por menu Salir")
     cerrar_stream()
@@ -248,15 +262,14 @@ def main() -> None:
     global tray_icon
 
     asegurar_instancia_unica()
-    log("arranque OK — hotkey Ctrl+Espacio")
+    log("arranque OK — control por click del icono")
 
-    threading.Thread(target=hotkey_listener, daemon=True).start()
-
+    # El hotkey de teclado quedo desactivado (disparos fantasma). Control por click.
     menu = pystray.Menu(
-        pystray.MenuItem("Dorita Dictado", lambda: None, enabled=False),
-        pystray.MenuItem(lambda item: f"Estado: {estado_actual}", lambda: None, enabled=False),
+        # default=True: se dispara con CLICK IZQUIERDO simple sobre el icono.
+        pystray.MenuItem(texto_item_grabar, toggle_click, default=True),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Hotkey: Ctrl+Espacio", lambda: None, enabled=False),
+        pystray.MenuItem(lambda item: f"Estado: {estado_actual}", lambda: None, enabled=False),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Salir", salir),
     )
