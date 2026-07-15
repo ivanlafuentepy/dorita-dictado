@@ -1,7 +1,7 @@
 """
 Dorita Dictado — Transcribe voz al portapapeles + auto-paste, con icono en bandeja.
 
-Hotkey: M+Espacio (con la M apretada, tocar espacio; igual para parar).
+Hotkey: Ctrl+Espacio (apretar para grabar, apretar de nuevo para parar).
 Resultado se pega automaticamente donde tengas el cursor.
 
 Click derecho en el icono de la bandeja para ver estado y salir.
@@ -48,7 +48,7 @@ def log(mensaje: str) -> None:
 
 SAMPLE_RATE = 16000
 CHANNELS = 1
-VK_M = 0x4D  # letra M para GetAsyncKeyState
+VK_CONTROL = 0x11  # Ctrl (cualquiera de las dos) para GetAsyncKeyState
 MODEL = "whisper-large-v3"
 LANG = "es"
 
@@ -198,14 +198,14 @@ def toggle() -> None:
 
 
 def hotkey_listener() -> None:
-    """M+Espacio. NO usa GlobalHotKeys: su tracking interno se desincroniza si
+    """Ctrl+Espacio. NO usa GlobalHotKeys: su tracking interno se desincroniza si
     pierde un release (ventanas elevadas, cambios de foco) y la barra sola
-    disparaba el mic. Aca se consulta el estado FISICO de la M con GetAsyncKeyState
+    disparaba el mic. Aca se consulta el estado FISICO de Ctrl con GetAsyncKeyState
     recien en el momento de apretar espacio — no hay estado que se pueda pegar."""
     espacio_abajo = False
 
-    def m_fisica() -> bool:
-        return bool(ctypes.windll.user32.GetAsyncKeyState(VK_M) & 0x8000)
+    def ctrl_fisico() -> bool:
+        return bool(ctypes.windll.user32.GetAsyncKeyState(VK_CONTROL) & 0x8000)
 
     def on_press(key):
         nonlocal espacio_abajo
@@ -213,7 +213,7 @@ def hotkey_listener() -> None:
             if espacio_abajo:  # autorepeat de Windows al mantener apretada la barra
                 return
             espacio_abajo = True
-            if m_fisica():
+            if ctrl_fisico():
                 toggle()
 
     def on_release(key):
@@ -248,7 +248,7 @@ def main() -> None:
     global tray_icon
 
     asegurar_instancia_unica()
-    log("arranque OK — hotkey M+Espacio")
+    log("arranque OK — hotkey Ctrl+Espacio")
 
     threading.Thread(target=hotkey_listener, daemon=True).start()
 
@@ -256,7 +256,7 @@ def main() -> None:
         pystray.MenuItem("Dorita Dictado", lambda: None, enabled=False),
         pystray.MenuItem(lambda item: f"Estado: {estado_actual}", lambda: None, enabled=False),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Hotkey: M+Espacio", lambda: None, enabled=False),
+        pystray.MenuItem("Hotkey: Ctrl+Espacio", lambda: None, enabled=False),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Salir", salir),
     )

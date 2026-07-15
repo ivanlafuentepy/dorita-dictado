@@ -11,9 +11,9 @@ Mucho mejor que el dictado nativo de Windows (Win+H) — sobre todo en español 
 
 ## Cómo funciona
 
-1. Apretás `M+Espacio` → empieza a grabar (ícono en bandeja se pone rojo)
+1. Apretás `Ctrl+Espacio` → empieza a grabar (ícono en bandeja se pone rojo)
 2. Hablás
-3. Apretás `M+Espacio` de nuevo → para, transcribe, pega solo
+3. Apretás `Ctrl+Espacio` de nuevo → para, transcribe, pega solo
 4. Listo — el texto aparece donde tenías el cursor
 
 El audio **nunca se guarda en disco**. Vive en memoria, va a Groq, se descarta.
@@ -92,9 +92,9 @@ Si todo salió bien, va a aparecer un **círculo azul con un micrófono** en la 
 
 1. Abrí cualquier app donde quieras dictar (VS Code, navegador, WhatsApp Web, lo que sea)
 2. Hacé click donde quieras que aparezca el texto (caja de mensaje, editor, etc.)
-3. Apretá `M+Espacio` — el ícono se pone rojo
+3. Apretá `Ctrl+Espacio` — el ícono se pone rojo
 4. Decí algo en voz alta: *"hola, esta es una prueba de dictado"*
-5. Apretá `M+Espacio` de nuevo — el ícono se pone amarillo, después vuelve a azul
+5. Apretá `Ctrl+Espacio` de nuevo — el ícono se pone amarillo, después vuelve a azul
 6. El texto aparece automáticamente donde tenías el cursor
 
 ---
@@ -118,9 +118,9 @@ Próxima vez que prendas la PC, el ícono azul aparece solo en la bandeja, listo
 ### Para dictar
 
 - Cursor donde quieras escribir
-- `M+Espacio`
+- `Ctrl+Espacio`
 - Hablás
-- `M+Espacio`
+- `Ctrl+Espacio`
 - Texto pegado automáticamente
 
 ### Para ver el estado
@@ -155,7 +155,7 @@ Editá `dictado.py` con cualquier editor:
 
 | Qué cambiar | Línea | Valor por default |
 |---|---|---|
-| Hotkey | `HOTKEY = "<ctrl>+<space>"` | M+Espacio |
+| Hotkey | `HOTKEY = "<ctrl>+<space>"` | Ctrl+Espacio |
 | Idioma | `LANG = "es"` | Español. Para inglés: `"en"` |
 | Modelo | `MODEL = "whisper-large-v3"` | El mejor de Groq |
 
@@ -163,7 +163,7 @@ Después de editar, cerrá el programa (click derecho en ícono → Salir) y arr
 
 ### Hotkeys alternativos
 
-Si `M+Espacio` choca con otra app:
+Si `Ctrl+Espacio` choca con otra app:
 - `<f12>` — tecla F12 sola
 - `<ctrl>+<alt>+d` — Ctrl + Alt + D
 - `<ctrl>+<shift>+v` — Ctrl + Shift + V
