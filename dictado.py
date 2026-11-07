@@ -63,6 +63,7 @@ VK_CONTROL = 0x11  # Ctrl (cualquiera de las dos) para GetAsyncKeyState
 MODEL = "whisper-large-v3"
 LANG = "es"
 MAX_GRABACION_SEG = 180  # 3 min: pasado esto la grabacion se apaga sola
+MIC_NAME = "DRELANMIC"  # mic USB de la mini PC; si no esta (2PC), usa el default de Windows
 
 COLOR_IDLE = "#3b82f6"     # azul
 COLOR_REC = "#ef4444"      # rojo
@@ -254,11 +255,23 @@ def procesar_audio(pegar: bool = True) -> None:
     cambiar_estado(ESTADO_IDLE)
 
 
+def resolver_device():
+    """Busca el indice del microfono preferido por nombre. None = default de Windows."""
+    try:
+        for idx, d in enumerate(sd.query_devices()):
+            if d["max_input_channels"] > 0 and MIC_NAME.lower() in d["name"].lower():
+                return idx
+    except Exception:
+        pass
+    return None
+
+
 def abrir_stream() -> None:
     """Abre el microfono. Solo se llama al empezar a grabar."""
     global stream
     stream = sd.InputStream(
-        callback=callback, channels=CHANNELS, samplerate=SAMPLE_RATE
+        callback=callback, channels=CHANNELS, samplerate=SAMPLE_RATE,
+        device=resolver_device(),
     )
     stream.start()
 
