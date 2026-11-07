@@ -7,6 +7,11 @@ El icono cambia de color: azul = listo, rojo = grabando, amarillo = transcribien
 
 Click derecho en el icono para el menu (grabar/parar, estado, salir).
 
+Corte automatico: si la grabacion sigue prendida a los 3 minutos, se apaga sola,
+transcribe y deja el texto SOLO en el portapapeles (no lo pega), con un aviso.
+Asi un mic olvidado no pega minutos de charla donde este el cursor, y un dictado
+largo de verdad no se pierde (Ctrl+V a mano).
+
 Nota: el atajo de teclado Ctrl+Espacio quedo DESACTIVADO (disparaba el mic solo
 cuando pynput perdia el release de Ctrl). La funcion `hotkey_listener` sigue en el
 codigo pero no se arranca — el control es 100% por click del icono.
@@ -57,6 +62,7 @@ CHANNELS = 1
 VK_CONTROL = 0x11  # Ctrl (cualquiera de las dos) para GetAsyncKeyState
 MODEL = "whisper-large-v3"
 LANG = "es"
+MAX_GRABACION_SEG = 180  # 3 min: pasado esto la grabacion se apaga sola
 
 COLOR_IDLE = "#3b82f6"     # azul
 COLOR_REC = "#ef4444"      # rojo
@@ -70,6 +76,9 @@ estado_actual = ESTADO_IDLE
 grabando = False
 audio_buffer: list = []
 ultimo_toggle = 0.0
+# Sube en cada grabacion: el temporizador de corte solo actua si sigue siendo
+# la misma grabacion que lo arranco (parar y volver a grabar reinicia los 3 min).
+sesion_grabacion = 0
 lock = threading.Lock()
 kb_controller = Controller()
 tray_icon: pystray.Icon = None
@@ -216,8 +225,9 @@ def auto_pegar() -> None:
         kb_controller.release("v")
 
 
-def procesar_audio() -> None:
-    """Corre en thread aparte para no bloquear el listener."""
+def procesar_audio(pegar: bool = True) -> None:
+    """Corre en thread aparte para no bloquear el listener.
+    pegar=False (corte automatico): deja el texto en el portapapeles y avisa."""
     if not audio_buffer:
         cambiar_estado(ESTADO_IDLE)
         return
@@ -229,7 +239,12 @@ def procesar_audio() -> None:
         texto = transcribir(audio)
         if texto:
             pyperclip.copy(texto)
-            auto_pegar()
+            if pegar:
+                auto_pegar()
+        if not pegar and tray_icon:
+            aviso = ("el texto quedo copiado, Ctrl+V para pegarlo" if texto
+                     else "no se escucho nada")
+            tray_icon.notify(f"Se apago solo a los 3 min — {aviso}", "Dorita Dictado")
     except Exception as e:
         # Silencio en background — opcionalmente notificar via tray
         log(f"error transcripcion: {e!r}")
@@ -258,7 +273,7 @@ def cerrar_stream() -> None:
 
 
 def toggle() -> None:
-    global grabando, audio_buffer, ultimo_toggle
+    global grabando, audio_buffer, ultimo_toggle, sesion_grabacion
 
     with lock:
         ahora = time.time()
@@ -271,12 +286,32 @@ def toggle() -> None:
             grabando = True
             abrir_stream()
             cambiar_estado(ESTADO_REC)
+            sesion_grabacion += 1
+            corte = threading.Timer(MAX_GRABACION_SEG, auto_apagar,
+                                    args=(sesion_grabacion,))
+            corte.daemon = True
+            corte.start()
             return
 
         grabando = False
         cerrar_stream()
 
     threading.Thread(target=procesar_audio, daemon=True).start()
+
+
+def auto_apagar(sesion: int) -> None:
+    """Lo dispara el temporizador a los MAX_GRABACION_SEG. Si esa grabacion
+    sigue prendida, la corta y transcribe sin pegar (solo portapapeles)."""
+    global grabando
+
+    with lock:
+        if not grabando or sesion != sesion_grabacion:
+            return  # ya la paraste a mano, o es otra grabacion
+        grabando = False
+        cerrar_stream()
+
+    log(f"corte automatico a los {MAX_GRABACION_SEG}s")
+    threading.Thread(target=procesar_audio, args=(False,), daemon=True).start()
 
 
 def hotkey_listener() -> None:
