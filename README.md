@@ -123,6 +123,10 @@ Próxima vez que prendas la PC, el ícono azul aparece solo en la bandeja, listo
 - CLICK de nuevo en el ícono
 - Texto pegado automáticamente
 
+**Si te olvidás el micrófono prendido:** a los 3 minutos se apaga solo, transcribe lo
+grabado y lo deja **copiado, sin pegarlo** (te avisa en la bandeja). Si lo querías,
+Ctrl+V donde vaya.
+
 ### Para ver el estado
 
 Hover sobre el ícono en la bandeja → te dice "Listo" / "Grabando..." / "Transcribiendo..."
